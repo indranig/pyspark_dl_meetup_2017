@@ -1,0 +1,19 @@
+Steps to create docker engine running on VirtualBox
+
+Install docker toolbox
+Install Oracle VirtualBox (run docker engine inside virtualbox)
+
+https://docs.docker.com/machine/get-started/#prerequisite-information
+
+docker-machine create --driver=virtualbox default
+
+docker-machine env
+@FOR /f "tokens=*" %i IN ('docker-machine env') DO @%i
+ 
+docker load < meetup-zeppelin-old.img 
+
+docker run -it -p 8080:8080 -p 4040:4040 -v c:/Users/brown/Documents/pysparkdl_meetup/practical-learnings-master/session2/data-sets -v c:/Users/brown/Documents/pysparkdl_meetup/practical-learnings-master/session2/notebook --rm deeplearner0:5000/meetup-zeppelin
+
+docker-machine ls (to get the ip address)
+
+open http://<docker-machine ip>:8080 to get to zeppelin notebook

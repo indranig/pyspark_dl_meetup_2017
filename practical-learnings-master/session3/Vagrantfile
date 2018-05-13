@@ -1,0 +1,41 @@
+Vagrant.configure("2") do |config|
+  interface = 'enp3s0'
+
+  8.times do |vm_index|
+    config.vm.define "meetup#{vm_index}" do |db|
+
+      db.vm.box = "ciscoxr/ubuntu-xenial-docker"
+      db.vm.network "public_network", bridge: interface
+      db.vm.network :forwarded_port, guest: 22, host: 4333 + vm_index, id: 'ssh'
+      db.vm.network :forwarded_port, guest: 2375, host: 2375 + vm_index, id: "docker"
+      db.vm.hostname = "meetup#{vm_index}"
+      db.vm.synced_folder "images/", "/images"
+      db.vm.synced_folder ".", "/vagrant", disabled: true
+
+      db.vm.provision "shell", inline: '/images/install-kubernetes.sh'
+      db.vm.provision "shell", inline: 'docker pull gcr.io/google_containers/kubernetes-dashboard-amd64:v1.6.0'
+      db.vm.provision "shell", inline: 'docker pull quay.io/coreos/etcd:v3.1.4'
+      db.vm.provision "shell", inline: 'docker pull quay.io/coreos/flannel:v0.7.0'
+      db.vm.provision "shell", inline: 'docker pull quay.io/calico/node:v1.1.0'
+      db.vm.provision "shell", inline: 'docker pull quay.io/calico/cni:v1.6.2'
+      db.vm.provision "shell", inline: 'docker pull quay.io/calico/kube-policy-controller:v0.5.4'
+
+      db.vm.provision "shell", inline: %Q{eval `route -n | awk '{ if ($8 =="#{interface}" && $2 != "0.0.0.0") print "route del default gw " $2; }'`; true}, run: "always"
+      db.vm.provision "shell", inline: %q{route add default gw 192.168.192.1; true}, run: "always"
+
+      db.vm.provision "shell", inline: 'mkdir -p /var/lib/zeppelin'
+      db.vm.provision "shell", inline: 'chown vagrant:vagrant /var/lib/zeppelin'
+      db.vm.provision "shell", inline: 'cp -R /images/notebook /var/lib/zeppelin/'
+      db.vm.provision "shell", inline: 'cp -R /images/data-sets /var/lib/zeppelin/'
+      db.vm.provision "shell", inline: 'mkdir -p /home/vagrant/.ssh/'
+      db.vm.provision "shell", inline: 'touch /home/vagrant/.ssh/authorized_keys'
+      db.vm.provision "shell", inline: 'cat /images/id_meetup.pub >> /home/vagrant/.ssh/authorized_keys'
+
+      config.vm.provider "virtualbox" do |vb|
+        vb.memory = "4096"
+        vb.cpus = 1
+      end
+    end
+  end
+
+end
